@@ -337,6 +337,59 @@ test("Comfort Report screen offers JSON export with a sensitive route-data warni
   assert.match(html, /precise location history/i);
 });
 
+test("Comfort Report screen renders Trip Review controls for Event Labels and whole-Trip review", () => {
+  const html = renderAppShell(createAppShell("comfort-report"), null, {
+    activeTrip: tripForReview(),
+  });
+
+  assert.match(html, /Trip Review/);
+  assert.match(html, /Event Labels/);
+  assert.match(html, /Correct/);
+  assert.match(html, /False positive/);
+  assert.match(html, /Too mild/);
+  assert.match(html, /Too severe/);
+  assert.match(html, /Perceived comfort/);
+  assert.match(html, /Perceived app accuracy/);
+  assert.match(html, /Missed Comfort Events/);
+  assert.match(html, /Review notes/);
+  assert.match(html, /data-trip-review-action="save"/);
+  assert.match(html, /eventLabel:hard-braking-250-250-0/);
+});
+
+test("Comfort Report screen renders a saved Trip Review summary", () => {
+  const html = renderAppShell(createAppShell("comfort-report"), null, {
+    activeTrip: {
+      ...tripForReview(),
+      tripReview: {
+        tripId: "trip-review-ui",
+        submittedAt: "2026-05-19T10:20:00.000Z",
+        eventLabels: [
+          {
+            eventId: "hard-braking-250-250-0",
+            eventType: "hard-braking",
+            eventStartedAtMs: 250,
+            eventEndedAtMs: 250,
+            label: "correct",
+            note: "Passenger felt this one.",
+          },
+        ],
+        overall: {
+          perceivedComfort: "mixed",
+          perceivedAccuracy: "mostly-accurate",
+          missedComfortEvents: "One small bump near the end.",
+          notes: "Try the same route again.",
+        },
+      },
+    },
+  });
+
+  assert.match(html, /Saved Trip Review/);
+  assert.match(html, /Mostly accurate/);
+  assert.match(html, /Passenger felt this one/);
+  assert.match(html, /One small bump near the end/);
+  assert.match(html, /Try the same route again/);
+});
+
 test("recording screen uses Comfort Signal as ambient color without live scoring language", () => {
   const html = renderAppShell(createAppShell("recording"), null, {
     activeTrip: {
@@ -373,3 +426,23 @@ test("project exposes local development and test commands", async () => {
   assert.equal(packageJson.scripts.dev, "node scripts/serve-static.js");
   assert.equal(packageJson.scripts.test, "node --test");
 });
+
+function tripForReview() {
+  return {
+    tripId: "trip-review-ui",
+    status: "finished",
+    timestamps: {
+      startedAt: "2026-05-19T10:00:00.000Z",
+      finishedAt: "2026-05-19T10:00:04.000Z",
+    },
+    confidenceMarkers: [],
+    streams: {
+      motion: [
+        { timestamp: 0, acceleration: { x: 0, y: 0, z: 0.1 } },
+        { timestamp: 250, acceleration: { x: 0, y: -3.2, z: 0.1 } },
+        { timestamp: 500, acceleration: { x: 0, y: -0.2, z: 0.1 } },
+      ],
+      gps: [],
+    },
+  };
+}

@@ -190,7 +190,12 @@ h1 {
 .comfort-events,
 .comfort-event-list,
 .comfort-event,
-.trip-export {
+.trip-review,
+.trip-export,
+.trip-review form,
+.trip-review-section,
+.trip-review-fields,
+.saved-trip-review {
   display: grid;
   gap: 14px;
 }
@@ -198,6 +203,7 @@ h1 {
 .report-view,
 .confidence-markers,
 .comfort-events,
+.trip-review,
 .trip-export {
   padding-top: 6px;
   border-top: 1px solid #dce4dd;
@@ -206,6 +212,7 @@ h1 {
 .report-view h2,
 .confidence-markers h2,
 .comfort-events h2,
+.trip-review h2,
 .trip-export h2 {
   margin: 0;
   font-size: 1.25rem;
@@ -213,7 +220,8 @@ h1 {
 
 .report-view h3,
 .confidence-marker h3,
-.comfort-event h3 {
+.comfort-event h3,
+.trip-review h3 {
   margin: 0;
   font-size: 1rem;
 }
@@ -221,6 +229,7 @@ h1 {
 .report-view p,
 .confidence-marker p,
 .comfort-event p,
+.trip-review p,
 .trip-export p {
   margin: 0;
   color: #46524c;
@@ -232,6 +241,57 @@ h1 {
   padding-left: 20px;
   color: #46524c;
   line-height: 1.45;
+}
+
+.event-label-control {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #d4ddd5;
+  border-radius: 8px;
+  background: #fbfcfa;
+}
+
+.event-label-control legend {
+  padding: 0 4px;
+  font-weight: 800;
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+  color: #46524c;
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 10px;
+  border: 1px solid #c9d4ca;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17201b;
+  font: inherit;
+  font-weight: 500;
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+.event-label-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #46524c;
+  line-height: 1.45;
+}
+
+.event-label-list span {
+  display: block;
 }
 
 .trip-recovery {
@@ -305,18 +365,18 @@ h1 {
   font-weight: 750;
 }
 
-.primary-action:disabled {
-  opacity: 0.68;
-}
-
 .secondary-action {
   justify-self: start;
+  min-height: 42px;
   padding: 0 14px;
+  border-radius: 8px;
   background: #ffffff;
   color: #214f4b;
   font-weight: 750;
+  cursor: pointer;
 }
 
+.primary-action:disabled,
 .secondary-action:disabled {
   opacity: 0.68;
 }

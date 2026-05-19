@@ -70,6 +70,7 @@ test("Comfort Report includes detected Comfort Events with explanations and inte
 
   assert.equal(report.comfortEvents.length, 1);
   assert.equal(report.comfortEvents[0].type, "hard-braking");
+  assert.equal(report.comfortEvents[0].eventId, "hard-braking-500-500-0");
   assert.match(report.comfortEvents[0].explanation, /braking/i);
   assert.equal(report.comfortEvents[0].metrics.axis, "longitudinal");
   assert.equal(report.comfortEvents[0].metrics.peakAbsMetersPerSecondSquared, 3.2);

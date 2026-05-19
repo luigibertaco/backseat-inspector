@@ -185,6 +185,27 @@ export function createLocalStorageTripStore(
   };
 }
 
+export async function saveTripReview({ store, tripId, review } = {}) {
+  if (!store?.loadTrip || !store?.saveTrip) {
+    throw new Error("Trip Review persistence requires a store with loadTrip() and saveTrip().");
+  }
+
+  if (!tripId || review?.tripId !== tripId) {
+    throw new Error("Trip Review must belong to the same Trip before it can be saved.");
+  }
+
+  const trip = await store.loadTrip(tripId);
+
+  if (!trip || trip.status !== "finished") {
+    throw new Error("Trip Review can only be saved for a finished Trip.");
+  }
+
+  return store.saveTrip({
+    ...clone(trip),
+    tripReview: clone(review),
+  });
+}
+
 export function getOrCreateLocalDeviceId(
   storage = globalThis.localStorage,
   createDeviceId = () => crypto.randomUUID(),
