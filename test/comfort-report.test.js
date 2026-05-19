@@ -74,3 +74,47 @@ test("Comfort Report includes detected Comfort Events with explanations and inte
   assert.equal(report.comfortEvents[0].metrics.axis, "longitudinal");
   assert.equal(report.comfortEvents[0].metrics.peakAbsMetersPerSecondSquared, 3.2);
 });
+
+test("Comfort Report includes vertical event speed context and Driver Control interpretation", () => {
+  const report = createComfortReport({
+    tripId: "trip-rough-road",
+    status: "finished",
+    timestamps: {
+      startedAt: "2026-05-19T10:00:00.000Z",
+      finishedAt: "2026-05-19T10:00:02.000Z",
+    },
+    streams: {
+      motion: [
+        { timestamp: 0, acceleration: { x: 0, y: 0, z: 0.1 } },
+        { timestamp: 250, acceleration: { x: 0, y: 0, z: 1.7 } },
+        { timestamp: 500, acceleration: { x: 0, y: 0, z: -1.8 } },
+        { timestamp: 750, acceleration: { x: 0, y: 0, z: 1.9 } },
+        { timestamp: 1000, acceleration: { x: 0, y: 0, z: -1.6 } },
+        { timestamp: 1250, acceleration: { x: 0, y: 0, z: 0.2 } },
+      ],
+      gps: [
+        {
+          timestamp: 250,
+          latitude: 0,
+          longitude: 0,
+          speedMetersPerSecond: 10.2,
+          accuracyMeters: 8,
+        },
+        {
+          timestamp: 1000,
+          latitude: 0,
+          longitude: 0.001,
+          speedMetersPerSecond: 8.6,
+          accuracyMeters: 8,
+        },
+      ],
+    },
+  });
+
+  assert.equal(report.comfortEvents.length, 1);
+  assert.equal(report.comfortEvents[0].type, "rough-road-segment");
+  assert.equal(report.comfortEvents[0].driverControl.speedResponse, "reduced");
+  assert.match(report.comfortEvents[0].driverControl.interpretation, /Driver Control/);
+  assert.equal(report.comfortEvents[0].metrics.speedAtStartMetersPerSecond, 10.2);
+  assert.equal(report.comfortEvents[0].metrics.speedAtEndMetersPerSecond, 8.6);
+});

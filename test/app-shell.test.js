@@ -194,6 +194,56 @@ test("Comfort Report screen renders detected Comfort Events with intensity detai
   assert.doesNotMatch(html, /safety|danger|fuel economy|efficiency/i);
 });
 
+test("Comfort Report screen renders vertical Driver Control and speed response details", () => {
+  const html = renderAppShell(createAppShell("comfort-report"), null, {
+    activeTrip: {
+      tripId: "trip-rough-road",
+      status: "finished",
+      timestamps: {
+        startedAt: "2026-05-19T10:00:00.000Z",
+        finishedAt: "2026-05-19T10:00:02.000Z",
+      },
+      streams: {
+        motion: [
+          { timestamp: 0, acceleration: { x: 0, y: 0, z: 0.1 } },
+          { timestamp: 250, acceleration: { x: 0, y: 0, z: 1.7 } },
+          { timestamp: 500, acceleration: { x: 0, y: 0, z: -1.8 } },
+          { timestamp: 750, acceleration: { x: 0, y: 0, z: 1.9 } },
+          { timestamp: 1000, acceleration: { x: 0, y: 0, z: -1.6 } },
+          { timestamp: 1250, acceleration: { x: 0, y: 0, z: 0.2 } },
+        ],
+        gps: [
+          {
+            timestamp: 250,
+            latitude: 0,
+            longitude: 0,
+            speedMetersPerSecond: 10.2,
+            accuracyMeters: 8,
+          },
+          {
+            timestamp: 1000,
+            latitude: 0,
+            longitude: 0.001,
+            speedMetersPerSecond: 8.6,
+            accuracyMeters: 8,
+          },
+        ],
+      },
+    },
+  });
+
+  assert.match(html, /Rough-road segment/);
+  assert.match(html, /Driver Control/);
+  assert.match(html, /speed was reduced/i);
+  assert.match(html, /Start speed/);
+  assert.match(html, /36\.7 km\/h/);
+  assert.match(html, /End speed/);
+  assert.match(html, /31\.0 km\/h/);
+  assert.match(html, /Speed response/);
+  assert.match(html, /Reduced/);
+  assert.doesNotMatch(html, /safety|danger|fuel economy|efficiency/i);
+});
+
 test("recording screen uses Comfort Signal as ambient color without live scoring language", () => {
   const html = renderAppShell(createAppShell("recording"), null, {
     activeTrip: {

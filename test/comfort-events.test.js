@@ -122,6 +122,107 @@ test("detects abrupt lateral variation Comfort Events from synthetic motion stre
   });
 });
 
+test("detects isolated vertical impact Comfort Events with speed context", () => {
+  const events = detectComfortEvents({
+    tripId: "trip-vertical-impact",
+    status: "finished",
+    streams: {
+      motion: [
+        motionSample(0, { z: 0.1 }),
+        motionSample(250, { z: 3.8 }),
+        motionSample(500, { z: 0.2 }),
+      ],
+      gps: [
+        gpsSample(0, 12.4),
+        gpsSample(250, 13.1),
+        gpsSample(500, 13.3),
+      ],
+    },
+  });
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].type, "vertical-impact");
+  assert.equal(events[0].startedAtMs, 250);
+  assert.equal(events[0].endedAtMs, 250);
+  assert.match(events[0].explanation, /isolated vertical impact/i);
+  assert.match(events[0].driverControl.interpretation, /single vertical impact/i);
+  assert.deepEqual(events[0].metrics, {
+    axis: "vertical",
+    peakMetersPerSecondSquared: 3.8,
+    peakAbsMetersPerSecondSquared: 3.8,
+    peakJerkMetersPerSecondCubed: 14.8,
+    peakAbsJerkMetersPerSecondCubed: 14.8,
+    speedAtPeakMetersPerSecond: 13.1,
+    sampleCount: 1,
+  });
+});
+
+test("detects sustained rough-road Comfort Events separately from isolated impacts", () => {
+  const events = detectComfortEvents({
+    tripId: "trip-rough-road",
+    status: "finished",
+    streams: {
+      motion: [
+        motionSample(0, { z: 0.1 }),
+        motionSample(250, { z: 3.7 }),
+        motionSample(500, { z: 0.2 }),
+        motionSample(1500, { z: 0.3 }),
+        motionSample(1750, { z: 1.8 }),
+        motionSample(2000, { z: -1.9 }),
+        motionSample(2250, { z: 2.1 }),
+        motionSample(2500, { z: -1.7 }),
+        motionSample(2750, { z: 1.6 }),
+        motionSample(3000, { z: 0.2 }),
+      ],
+      gps: [
+        gpsSample(250, 12.5),
+        gpsSample(1750, 11.9),
+        gpsSample(2750, 9.7),
+      ],
+    },
+  });
+
+  assert.deepEqual(
+    events.map((event) => event.type),
+    ["vertical-impact", "rough-road-segment"],
+  );
+
+  const roughRoad = events[1];
+  assert.equal(roughRoad.startedAtMs, 1750);
+  assert.equal(roughRoad.endedAtMs, 2750);
+  assert.match(roughRoad.explanation, /sustained rough-road/i);
+  assert.equal(roughRoad.driverControl.speedResponse, "reduced");
+  assert.match(roughRoad.driverControl.interpretation, /speed was reduced/i);
+  assert.equal(roughRoad.metrics.speedAtStartMetersPerSecond, 11.9);
+  assert.equal(roughRoad.metrics.speedAtEndMetersPerSecond, 9.7);
+});
+
+test("records maintained speed response during rough-road segments", () => {
+  const events = detectComfortEvents({
+    tripId: "trip-rough-road-maintained",
+    status: "finished",
+    streams: {
+      motion: [
+        motionSample(0, { z: 0.1 }),
+        motionSample(250, { z: 1.6 }),
+        motionSample(500, { z: -1.7 }),
+        motionSample(750, { z: 1.9 }),
+        motionSample(1000, { z: -1.6 }),
+        motionSample(1250, { z: 0.2 }),
+      ],
+      gps: [
+        gpsSample(250, 8.1),
+        gpsSample(1000, 7.8),
+      ],
+    },
+  });
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].type, "rough-road-segment");
+  assert.equal(events[0].driverControl.speedResponse, "maintained");
+  assert.match(events[0].driverControl.interpretation, /speed was maintained/i);
+});
+
 function motionSample(timestamp, acceleration) {
   return {
     timestamp,
@@ -130,5 +231,15 @@ function motionSample(timestamp, acceleration) {
       y: acceleration.y ?? 0,
       z: acceleration.z ?? 0,
     },
+  };
+}
+
+function gpsSample(timestamp, speedMetersPerSecond) {
+  return {
+    timestamp,
+    latitude: 0,
+    longitude: 0,
+    speedMetersPerSecond,
+    accuracyMeters: 8,
   };
 }
