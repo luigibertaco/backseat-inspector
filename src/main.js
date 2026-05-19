@@ -21,6 +21,12 @@ if (app) {
       return;
     }
 
+    if (control.dataset.mountingMode) {
+      shell.selectMountingMode(control.dataset.mountingMode);
+      render();
+      return;
+    }
+
     if (control.dataset.action === "primary" && shell.currentScreen.id === "start") {
       control.disabled = true;
       await permissionFlow.requestFromUserAction();
