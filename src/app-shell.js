@@ -260,6 +260,76 @@ function renderComfortReport(shell, trip) {
         <dd>${report.gps.lowAccuracySamplePercentage}%</dd>
       </div>
     </dl>
+    ${renderComfortEvents(report.comfortEvents)}
+  `;
+}
+
+function renderComfortEvents(events) {
+  if (!Array.isArray(events) || events.length === 0) {
+    return `
+      <section class="comfort-events" aria-label="Comfort Events">
+        <h2>Comfort Events</h2>
+        <p>No longitudinal or lateral Comfort Events detected.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="comfort-events" aria-label="Comfort Events">
+      <h2>Comfort Events</h2>
+      <div class="comfort-event-list">
+        ${events
+          .map(
+            (event) => `
+              <article class="comfort-event">
+                <h3>${formatComfortEventType(event.type)}</h3>
+                <p>${event.explanation}</p>
+                <dl class="diagnostics" aria-label="${formatComfortEventType(event.type)} intensity">
+                  ${renderComfortEventMetrics(event)}
+                </dl>
+              </article>
+            `,
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderComfortEventMetrics(event) {
+  const metrics = event.metrics ?? {};
+  const sustainedJerkMetric = Number.isFinite(metrics.peakAbsJerkMetersPerSecondCubed)
+    ? `
+    <div class="diagnostic">
+      <dt>Peak ${metrics.axis} jerk</dt>
+      <dd>${formatJerk(metrics.peakAbsJerkMetersPerSecondCubed)}</dd>
+    </div>
+  `
+    : "";
+
+  if (event.type === "abrupt-lateral-variation") {
+    return `
+      <div class="diagnostic">
+        <dt>Peak lateral jerk</dt>
+        <dd>${formatJerk(metrics.peakAbsJerkMetersPerSecondCubed)}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>Lateral change</dt>
+        <dd>${formatAcceleration(metrics.lateralDeltaMetersPerSecondSquared)}</dd>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="diagnostic">
+      <dt>Peak ${metrics.axis} intensity</dt>
+      <dd>${formatAcceleration(metrics.peakAbsMetersPerSecondSquared)}</dd>
+    </div>
+    ${sustainedJerkMetric}
+    <div class="diagnostic">
+      <dt>Event samples</dt>
+      <dd>${metrics.sampleCount}</dd>
+    </div>
   `;
 }
 
@@ -308,4 +378,23 @@ function formatDistance(distanceMeters) {
 
 function formatSpeed(speedMetersPerSecond) {
   return `${(speedMetersPerSecond * 3.6).toFixed(1)} km/h`;
+}
+
+function formatComfortEventType(type) {
+  const labels = {
+    "hard-braking": "Hard braking",
+    "strong-acceleration": "Strong acceleration",
+    "uncomfortable-turn": "Uncomfortable turn",
+    "abrupt-lateral-variation": "Abrupt lateral variation",
+  };
+
+  return labels[type] ?? formatStatus(type);
+}
+
+function formatAcceleration(value) {
+  return `${Number(value).toFixed(1)} m/s^2`;
+}
+
+function formatJerk(value) {
+  return `${Number(value).toFixed(1)} m/s^3`;
 }
