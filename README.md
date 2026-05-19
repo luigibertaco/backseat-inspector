@@ -115,12 +115,29 @@ Real exported Trip fixtures can become regression tests later, but they should b
 
 ## Development
 
-There is no build system yet. The intended first version is a static web app that can run locally and be deployed to GitHub Pages.
+Backseat Inspector is a static, framework-free web app. It can run locally from a small Node static server and can be deployed to GitHub Pages without a build step.
 
-Once implementation begins, this section should document:
+Prerequisite:
 
-- Local development commands.
-- Test commands.
+- Node.js 22 or newer.
+
+Local commands:
+
+```sh
+npm run dev
+npm test
+```
+
+`npm run dev` serves the app at `http://localhost:4173`. Set `PORT` to use a different port:
+
+```sh
+PORT=5000 npm run dev
+```
+
+The initial test harness uses Node's built-in test runner and focuses on public app-shell behavior.
+
+Future implementation slices should add:
+
 - GitHub Pages deployment steps.
 - Browser support and sensor limitations.
 - Export schema and versioning rules.
