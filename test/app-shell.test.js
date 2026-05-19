@@ -15,6 +15,22 @@ test("app shell starts in the Start state with paths for Trip and Comfort Report
   );
 });
 
+test("start flow supports fixed mount and horizontal console mounting modes", () => {
+  const shell = createAppShell();
+
+  assert.equal(shell.currentMountingMode.id, "fixed-mount");
+
+  shell.selectMountingMode("horizontal-console");
+
+  assert.equal(shell.currentMountingMode.id, "horizontal-console");
+
+  const html = renderAppShell(shell);
+
+  assert.match(html, /Fixed mount/);
+  assert.match(html, /Horizontal console/);
+  assert.match(html, /data-mounting-mode="horizontal-console" aria-pressed="true"/);
+});
+
 test("app shell advances through the Trip flow", () => {
   const shell = createAppShell();
 

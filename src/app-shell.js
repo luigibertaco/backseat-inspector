@@ -22,18 +22,40 @@ const SCREENS = [
   },
 ];
 
+const MOUNTING_MODES = [
+  {
+    id: "fixed-mount",
+    label: "Fixed mount",
+    description: "Phone is secured in a mount and should stay in one orientation.",
+  },
+  {
+    id: "horizontal-console",
+    label: "Horizontal console",
+    description: "Phone is lying flat on the console and must be level and stable.",
+  },
+];
+
 export function createAppShell(initialScreenId = "start") {
   let currentScreen =
     findScreen(initialScreenId) ?? SCREENS[0];
+  let currentMountingMode = MOUNTING_MODES[0];
 
   return {
     get currentScreen() {
       return currentScreen;
     },
+    get currentMountingMode() {
+      return currentMountingMode;
+    },
     screens: SCREENS,
+    mountingModes: MOUNTING_MODES,
     goToScreen(screenId) {
       currentScreen = findScreen(screenId) ?? currentScreen;
       return currentScreen;
+    },
+    selectMountingMode(mountingModeId) {
+      currentMountingMode = findMountingMode(mountingModeId) ?? currentMountingMode;
+      return currentMountingMode;
     },
     activatePrimaryAction() {
       const currentIndex = SCREENS.findIndex((screen) => screen.id === currentScreen.id);
@@ -46,6 +68,10 @@ export function createAppShell(initialScreenId = "start") {
 
 function findScreen(screenId) {
   return SCREENS.find((screen) => screen.id === screenId);
+}
+
+function findMountingMode(mountingModeId) {
+  return MOUNTING_MODES.find((mode) => mode.id === mountingModeId);
 }
 
 export function renderAppShell(shell = createAppShell(), permissionDiagnostics = null) {
@@ -67,10 +93,34 @@ export function renderAppShell(shell = createAppShell(), permissionDiagnostics =
         </div>
       </header>
       <p class="screen-copy">${shell.currentScreen.body}</p>
+      ${renderMountingModes(shell)}
       ${renderPermissionDiagnostics(shell, permissionDiagnostics)}
       <div class="screen-tabs" aria-label="Trip flow">${screenTabs}</div>
       <button class="primary-action" type="button" data-action="primary">${shell.currentScreen.action}</button>
     </section>
+  `;
+}
+
+function renderMountingModes(shell) {
+  if (shell.currentScreen.id !== "start") {
+    return "";
+  }
+
+  return `
+    <div class="mounting-modes" aria-label="Mounting mode">
+      ${shell.mountingModes
+        .map((mode) => {
+          const active = mode.id === shell.currentMountingMode.id ? "true" : "false";
+
+          return `
+            <button class="mounting-mode" type="button" data-mounting-mode="${mode.id}" aria-pressed="${active}">
+              <span>${mode.label}</span>
+              <small>${mode.description}</small>
+            </button>
+          `;
+        })
+        .join("")}
+    </div>
   `;
 }
 

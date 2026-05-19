@@ -87,6 +87,45 @@ h1 {
   gap: 8px;
 }
 
+.mounting-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mounting-mode {
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid #c9d4ca;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #344139;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mounting-mode[aria-pressed="true"] {
+  border-color: #214f4b;
+  background: #e5eeee;
+  color: #173d39;
+}
+
+.mounting-mode span,
+.mounting-mode small {
+  display: block;
+}
+
+.mounting-mode span {
+  margin-bottom: 6px;
+  font-weight: 800;
+}
+
+.mounting-mode small {
+  color: #5d6a62;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .diagnostics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -161,6 +200,10 @@ h1 {
   }
 
   .screen-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .mounting-modes {
     grid-template-columns: 1fr;
   }
 
