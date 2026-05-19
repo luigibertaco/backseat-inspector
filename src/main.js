@@ -1,4 +1,5 @@
 import { createAppShell, renderAppShell } from "./app-shell.js";
+import { createComfortSignal } from "./comfort-signal.js";
 import { createBrowserPermissionFlow } from "./permissions.js";
 import {
   createLocalStorageTripStore,
@@ -17,6 +18,8 @@ let recorder = null;
 let activeTrip = null;
 let tripRecovery = await recoverInterruptedTrip({ store: tripStore });
 let capture = null;
+let comfortSignal = null;
+let comfortSignalTimer = null;
 let wakeLock = null;
 
 if (app) {
@@ -75,6 +78,7 @@ function render() {
     app.innerHTML = renderAppShell(shell, permissionFlow.snapshot(), {
       recovery: tripRecovery,
       activeTrip,
+      comfortSignal: comfortSignal?.snapshot(),
       wakeLock: wakeLock?.snapshot(),
     });
     app.querySelector("[aria-pressed='true']")?.focus();
@@ -89,8 +93,10 @@ async function startTrip() {
   activeTrip = await recorder.startTrip({
     mountingMode: shell.currentMountingMode.id,
   });
+  comfortSignal = createComfortSignal();
+  startComfortSignalDecay();
   tripRecovery = await recoverInterruptedTrip({ store: tripStore });
-  capture = createBrowserTripCapture(globalThis, recorder, updateActiveTrip);
+  capture = createBrowserTripCapture(globalThis, recorder, updateActiveTrip, comfortSignal);
   capture.start();
   wakeLock = createBrowserWakeLockController(globalThis, { onChange: render });
   wakeLock.bindVisibilityRecovery();
@@ -101,6 +107,7 @@ async function startTrip() {
 async function finishTrip() {
   capture?.stop();
   capture = null;
+  stopComfortSignalDecay();
   await wakeLock?.release();
   wakeLock = null;
 
@@ -109,6 +116,7 @@ async function finishTrip() {
   }
 
   recorder = null;
+  comfortSignal = null;
   tripRecovery = await recoverInterruptedTrip({ store: tripStore });
   shell.goToScreen("comfort-report");
 }
@@ -121,7 +129,9 @@ async function applyTripRecovery(action) {
   if (action === "continue") {
     recorder = await tripRecovery.continueTrip();
     activeTrip = recorder.snapshot();
-    capture = createBrowserTripCapture(globalThis, recorder, updateActiveTrip);
+    comfortSignal = createComfortSignal();
+    startComfortSignalDecay();
+    capture = createBrowserTripCapture(globalThis, recorder, updateActiveTrip, comfortSignal);
     capture.start();
     wakeLock = createBrowserWakeLockController(globalThis, { onChange: render });
     wakeLock.bindVisibilityRecovery();
@@ -132,6 +142,8 @@ async function applyTripRecovery(action) {
 
   if (action === "finish") {
     activeTrip = await tripRecovery.finishTrip();
+    comfortSignal = null;
+    stopComfortSignalDecay();
     tripRecovery = await recoverInterruptedTrip({ store: tripStore });
     shell.goToScreen("comfort-report");
     return;
@@ -141,6 +153,8 @@ async function applyTripRecovery(action) {
     await tripRecovery.discardTrip();
     activeTrip = null;
     recorder = null;
+    comfortSignal = null;
+    stopComfortSignalDecay();
     wakeLock = null;
     tripRecovery = await recoverInterruptedTrip({ store: tripStore });
   }
@@ -148,12 +162,15 @@ async function applyTripRecovery(action) {
 
 function updateActiveTrip() {
   activeTrip = recorder?.snapshot() ?? activeTrip;
+  render();
 }
 
-function createBrowserTripCapture(browser, tripRecorder, onSample) {
+function createBrowserTripCapture(browser, tripRecorder, onSample, signal = null) {
   let gpsWatchId = null;
   const motionHandler = (event) => {
-    void tripRecorder.recordMotionSample(normalizeMotionEvent(event)).then(onSample);
+    const sample = normalizeMotionEvent(event);
+    signal?.observeMotionSample(sample);
+    void tripRecorder.recordMotionSample(sample).then(onSample);
   };
 
   return {
@@ -174,6 +191,21 @@ function createBrowserTripCapture(browser, tripRecorder, onSample) {
       }
     },
   };
+}
+
+function startComfortSignalDecay() {
+  stopComfortSignalDecay();
+  comfortSignalTimer = globalThis.setInterval?.(() => {
+    comfortSignal?.tick(globalThis.performance?.now?.() ?? Date.now());
+    render();
+  }, 250);
+}
+
+function stopComfortSignalDecay() {
+  if (comfortSignalTimer !== null) {
+    globalThis.clearInterval?.(comfortSignalTimer);
+    comfortSignalTimer = null;
+  }
 }
 
 function normalizeMotionEvent(event) {
