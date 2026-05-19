@@ -24,7 +24,7 @@ export function createComfortReport(trip) {
   const gpsSamples = Array.isArray(trip?.streams?.gps) ? trip.streams.gps : [];
   const confidenceMarkers = Array.isArray(trip?.confidenceMarkers) ? trip.confidenceMarkers : [];
   const approximateDistanceMeters = calculateApproximateDistanceMeters(gpsSamples);
-  const comfortEvents = detectComfortEvents(trip);
+  const comfortEvents = detectComfortEvents(trip).map(addComfortEventId);
   const rawView = createComfortReportView({
     id: "raw",
     label: "Raw View",
@@ -236,4 +236,11 @@ function toRadians(degrees) {
 
 function cloneArray(values) {
   return values.map((value) => structuredClone(value));
+}
+
+function addComfortEventId(event, index) {
+  return {
+    ...event,
+    eventId: `${event.type}-${event.startedAtMs}-${event.endedAtMs}-${index}`,
+  };
 }
