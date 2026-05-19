@@ -118,3 +118,86 @@ test("Comfort Report includes vertical event speed context and Driver Control in
   assert.equal(report.comfortEvents[0].metrics.speedAtStartMetersPerSecond, 10.2);
   assert.equal(report.comfortEvents[0].metrics.speedAtEndMetersPerSecond, 8.6);
 });
+
+test("Comfort Report includes Raw View and Trusted View without deleting raw events", () => {
+  const report = createComfortReport(tripWithEventsAndConfidenceMarkers());
+
+  assert.equal(report.comfortEvents.length, 2);
+  assert.equal(report.confidenceMarkers.length, 1);
+  assert.equal(report.rawView.label, "Raw View");
+  assert.equal(report.trustedView.label, "Trusted View");
+  assert.equal(report.rawView.comfortEvents.length, 2);
+  assert.equal(report.trustedView.comfortEvents.length, 2);
+  assert.equal(report.rawView.confidenceMarkers.length, 1);
+  assert.equal(report.trustedView.confidenceMarkers.length, 1);
+  assert.equal(report.trustedView.confidenceAdjustment.eventImpactMultiplier, 0.45);
+  assert.match(report.trustedView.confidenceAdjustment.explanation, /reduced/i);
+});
+
+test("Comfort Index is experimental and changes classification when Confidence Markers reduce event influence", () => {
+  const report = createComfortReport(tripWithEventsAndConfidenceMarkers());
+
+  assert.equal(report.rawView.passengerComfort.comfortIndex.experimental, true);
+  assert.equal(report.rawView.passengerComfort.comfortIndex.score, 64);
+  assert.equal(report.rawView.passengerComfort.comfortIndex.classification, "Mixed comfort");
+  assert.equal(report.trustedView.passengerComfort.comfortIndex.score, 84);
+  assert.equal(
+    report.trustedView.passengerComfort.comfortIndex.classification,
+    "Mostly comfortable",
+  );
+});
+
+test("Comfort Report separates Passenger Comfort from Driver Control", () => {
+  const report = createComfortReport(tripWithEventsAndConfidenceMarkers());
+
+  assert.equal(report.rawView.passengerComfort.eventCount, 2);
+  assert.equal(report.rawView.driverControl.interpretations.length, 1);
+  assert.match(report.rawView.driverControl.interpretations[0], /speed was reduced/i);
+});
+
+function tripWithEventsAndConfidenceMarkers() {
+  return {
+    tripId: "trip-index",
+    status: "finished",
+    timestamps: {
+      startedAt: "2026-05-19T10:00:00.000Z",
+      finishedAt: "2026-05-19T10:00:04.000Z",
+    },
+    confidenceMarkers: [
+      {
+        type: "moved-phone",
+        severity: "high",
+        reason: "Stopped-phone calibration detected a placement change while parked.",
+      },
+    ],
+    streams: {
+      motion: [
+        { timestamp: 0, acceleration: { x: 0, y: 0, z: 0.1 } },
+        { timestamp: 250, acceleration: { x: 0, y: -3.2, z: 0.1 } },
+        { timestamp: 500, acceleration: { x: 0, y: -0.2, z: 0.1 } },
+        { timestamp: 1250, acceleration: { x: 0, y: 0, z: 1.8 } },
+        { timestamp: 1500, acceleration: { x: 0, y: 0, z: -1.9 } },
+        { timestamp: 1750, acceleration: { x: 0, y: 0, z: 2.1 } },
+        { timestamp: 2000, acceleration: { x: 0, y: 0, z: -1.7 } },
+        { timestamp: 2250, acceleration: { x: 0, y: 0, z: 1.6 } },
+        { timestamp: 2500, acceleration: { x: 0, y: 0, z: 0.2 } },
+      ],
+      gps: [
+        {
+          timestamp: 1250,
+          latitude: 0,
+          longitude: 0,
+          speedMetersPerSecond: 11.9,
+          accuracyMeters: 8,
+        },
+        {
+          timestamp: 2250,
+          latitude: 0,
+          longitude: 0.001,
+          speedMetersPerSecond: 9.7,
+          accuracyMeters: 8,
+        },
+      ],
+    },
+  };
+}

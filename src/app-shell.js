@@ -260,7 +260,120 @@ function renderComfortReport(shell, trip) {
         <dd>${report.gps.lowAccuracySamplePercentage}%</dd>
       </div>
     </dl>
+    ${renderComfortReportViews(report)}
+    ${renderConfidenceMarkers(report.confidenceMarkers)}
     ${renderComfortEvents(report.comfortEvents)}
+  `;
+}
+
+function renderComfortReportViews(report) {
+  return `
+    <section class="report-views" aria-label="Comfort Report views">
+      ${renderComfortReportView(report.rawView)}
+      ${renderComfortReportView(report.trustedView)}
+    </section>
+  `;
+}
+
+function renderComfortReportView(view) {
+  return `
+    <article class="report-view">
+      <h2>${view.label}</h2>
+      ${view.id === "raw" ? renderCapturedData(view.capturedData) : ""}
+      <div class="report-view-section">
+        <h3>Passenger Comfort</h3>
+        <dl class="diagnostics" aria-label="${view.label} Passenger Comfort">
+          <div class="diagnostic">
+            <dt>Experimental Comfort Index</dt>
+            <dd>${view.passengerComfort.comfortIndex.score}</dd>
+          </div>
+          <div class="diagnostic">
+            <dt>Classification</dt>
+            <dd>${view.passengerComfort.comfortIndex.classification}</dd>
+          </div>
+          <div class="diagnostic">
+            <dt>Comfort Events</dt>
+            <dd>${view.passengerComfort.eventCount}</dd>
+          </div>
+          <div class="diagnostic">
+            <dt>Event influence</dt>
+            <dd>${formatMultiplier(view.confidenceAdjustment.eventImpactMultiplier)}</dd>
+          </div>
+        </dl>
+        <p>${view.confidenceAdjustment.explanation}</p>
+      </div>
+      <div class="report-view-section">
+        <h3>Driver Control</h3>
+        ${renderDriverControlSummary(view.driverControl)}
+      </div>
+    </article>
+  `;
+}
+
+function renderCapturedData(capturedData) {
+  return `
+    <div class="report-view-section">
+      <h3>Captured Data</h3>
+      <dl class="diagnostics" aria-label="Raw View captured data">
+        <div class="diagnostic">
+          <dt>Motion Samples</dt>
+          <dd>${capturedData.motionSampleCount}</dd>
+        </div>
+        <div class="diagnostic">
+          <dt>GPS Samples</dt>
+          <dd>${capturedData.gpsSampleCount}</dd>
+        </div>
+      </dl>
+    </div>
+  `;
+}
+
+function renderDriverControlSummary(driverControl) {
+  if (!Array.isArray(driverControl?.interpretations) || driverControl.interpretations.length === 0) {
+    return "<p>No Driver Control interpretation available for these Comfort Events.</p>";
+  }
+
+  return `
+    <ul class="driver-control-list">
+      ${driverControl.interpretations
+        .map((interpretation) => `<li>${interpretation}</li>`)
+        .join("")}
+    </ul>
+  `;
+}
+
+function renderConfidenceMarkers(confidenceMarkers) {
+  if (!Array.isArray(confidenceMarkers) || confidenceMarkers.length === 0) {
+    return `
+      <section class="confidence-markers" aria-label="Confidence Markers">
+        <h2>Confidence Markers</h2>
+        <p>No Confidence Markers recorded.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="confidence-markers" aria-label="Confidence Markers">
+      <h2>Confidence Markers</h2>
+      <div class="confidence-marker-list">
+        ${confidenceMarkers
+          .map(
+            (marker) => `
+              <article class="confidence-marker">
+                <h3>${formatStatus(marker.type)}</h3>
+                <p>${marker.reason}</p>
+                <dl class="diagnostics" aria-label="${formatStatus(marker.type)} confidence marker">
+                  <div class="diagnostic">
+                    <dt>Severity</dt>
+                    <dd>${formatStatus(marker.severity)}</dd>
+                  </div>
+                </dl>
+              </article>
+            `,
+          )
+          .join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -452,6 +565,10 @@ function formatAcceleration(value) {
 
 function formatJerk(value) {
   return `${Number(value).toFixed(1)} m/s^3`;
+}
+
+function formatMultiplier(value) {
+  return `${Math.round(value * 100)}%`;
 }
 
 function formatOptionalSpeed(speedMetersPerSecond) {
