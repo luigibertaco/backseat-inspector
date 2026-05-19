@@ -64,6 +64,27 @@ test("start screen shows permission and GPS diagnostics", () => {
   assert.match(html, /Active \(8 m accuracy\)/);
 });
 
+test("start screen offers interrupted Trip recovery actions", () => {
+  const html = renderAppShell(createAppShell(), null, {
+    recovery: {
+      hasInterruptedTrip: true,
+      trip: {
+        tripId: "trip-interrupted",
+        timestamps: {
+          startedAt: "2026-05-19T10:00:00.000Z",
+        },
+      },
+      actions: ["continue", "finish", "discard"],
+    },
+  });
+
+  assert.match(html, /Interrupted Trip/);
+  assert.match(html, /Continue Trip/);
+  assert.match(html, /Finish With Existing Data/);
+  assert.match(html, /Discard Trip/);
+  assert.match(html, /data-trip-recovery="continue"/);
+});
+
 test("static entrypoint mounts the app shell with a browser module", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 

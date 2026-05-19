@@ -4,7 +4,7 @@ const SCREENS = [
     title: "Start Trip",
     eyebrow: "Ready",
     body: "Prepare permissions, mounting mode, and calibration before recording a Trip.",
-    action: "Check Permissions",
+    action: "Start Trip",
   },
   {
     id: "recording",
@@ -74,7 +74,7 @@ function findMountingMode(mountingModeId) {
   return MOUNTING_MODES.find((mode) => mode.id === mountingModeId);
 }
 
-export function renderAppShell(shell = createAppShell(), permissionDiagnostics = null) {
+export function renderAppShell(shell = createAppShell(), permissionDiagnostics = null, tripRecording = null) {
   const screenTabs = shell.screens
     .map((screen) => {
       const active = screen.id === shell.currentScreen.id ? "true" : "false";
@@ -95,6 +95,8 @@ export function renderAppShell(shell = createAppShell(), permissionDiagnostics =
       <p class="screen-copy">${shell.currentScreen.body}</p>
       ${renderMountingModes(shell)}
       ${renderPermissionDiagnostics(shell, permissionDiagnostics)}
+      ${renderTripRecovery(shell, tripRecording?.recovery)}
+      ${renderTripRecordingStatus(shell, tripRecording?.activeTrip)}
       <div class="screen-tabs" aria-label="Trip flow">${screenTabs}</div>
       <button class="primary-action" type="button" data-action="primary">${shell.currentScreen.action}</button>
     </section>
@@ -150,6 +152,61 @@ function renderPermissionDiagnostics(shell, diagnostics) {
         .join("")}
     </dl>
   `;
+}
+
+function renderTripRecovery(shell, recovery) {
+  if (shell.currentScreen.id !== "start" || !recovery?.hasInterruptedTrip) {
+    return "";
+  }
+
+  return `
+    <section class="trip-recovery" aria-label="Interrupted Trip">
+      <h2>Interrupted Trip</h2>
+      <p>Started ${recovery.trip.timestamps.startedAt}</p>
+      <div class="recovery-actions">
+        ${recovery.actions
+          .map(
+            (action) => `
+              <button type="button" data-trip-recovery="${action}">${formatRecoveryAction(action)}</button>
+            `,
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderTripRecordingStatus(shell, activeTrip) {
+  if (shell.currentScreen.id !== "recording" || !activeTrip) {
+    return "";
+  }
+
+  return `
+    <dl class="diagnostics" aria-label="Trip recording status">
+      <div class="diagnostic">
+        <dt>Trip</dt>
+        <dd>${activeTrip.status}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>Motion Samples</dt>
+        <dd>${activeTrip.streams.motion.length}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>GPS Samples</dt>
+        <dd>${activeTrip.streams.gps.length}</dd>
+      </div>
+    </dl>
+  `;
+}
+
+function formatRecoveryAction(action) {
+  const labels = {
+    continue: "Continue Trip",
+    finish: "Finish With Existing Data",
+    discard: "Discard Trip",
+  };
+
+  return labels[action] ?? formatStatus(action);
 }
 
 function formatPermission(diagnostic) {
