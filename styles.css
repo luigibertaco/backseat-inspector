@@ -191,6 +191,7 @@ h1 {
 .comfort-event-list,
 .comfort-event,
 .trip-review,
+.trip-export,
 .trip-review form,
 .trip-review-section,
 .trip-review-fields,
@@ -202,7 +203,8 @@ h1 {
 .report-view,
 .confidence-markers,
 .comfort-events,
-.trip-review {
+.trip-review,
+.trip-export {
   padding-top: 6px;
   border-top: 1px solid #dce4dd;
 }
@@ -210,7 +212,8 @@ h1 {
 .report-view h2,
 .confidence-markers h2,
 .comfort-events h2,
-.trip-review h2 {
+.trip-review h2,
+.trip-export h2 {
   margin: 0;
   font-size: 1.25rem;
 }
@@ -226,7 +229,8 @@ h1 {
 .report-view p,
 .confidence-marker p,
 .comfort-event p,
-.trip-review p {
+.trip-review p,
+.trip-export p {
   margin: 0;
   color: #46524c;
   line-height: 1.45;
@@ -330,7 +334,8 @@ h1 {
 }
 
 .screen-tab,
-.primary-action {
+.primary-action,
+.secondary-action {
   min-height: 44px;
   border-radius: 8px;
   border: 1px solid #c9d4ca;
@@ -351,8 +356,7 @@ h1 {
   font-weight: 700;
 }
 
-.primary-action,
-.secondary-action {
+.primary-action {
   justify-self: start;
   padding: 0 18px;
   border-color: #214f4b;
@@ -362,8 +366,13 @@ h1 {
 }
 
 .secondary-action {
+  justify-self: start;
   min-height: 42px;
+  padding: 0 14px;
   border-radius: 8px;
+  background: #ffffff;
+  color: #214f4b;
+  font-weight: 750;
   cursor: pointer;
 }
 

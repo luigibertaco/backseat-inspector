@@ -2,6 +2,7 @@ import { createAppShell, renderAppShell } from "./app-shell.js";
 import { createComfortReport } from "./comfort-report.js";
 import { createComfortSignal } from "./comfort-signal.js";
 import { createBrowserPermissionFlow } from "./permissions.js";
+import { createTripDatasetExportJson } from "./trip-export.js";
 import {
   createLocalStorageTripStore,
   createTripRecorder,
@@ -51,6 +52,13 @@ if (app) {
       control.disabled = true;
       await applyTripRecovery(control.dataset.tripRecovery);
       render();
+      return;
+    }
+
+    if (control.dataset.action === "export-json") {
+      control.disabled = true;
+      exportActiveTripDataset(globalThis, activeTrip);
+      control.disabled = false;
       return;
     }
 
@@ -172,6 +180,26 @@ async function applyTripRecovery(action) {
     wakeLock = null;
     tripRecovery = await recoverInterruptedTrip({ store: tripStore });
   }
+}
+
+function exportActiveTripDataset(browser, trip) {
+  if (!trip || trip.status !== "finished") {
+    return;
+  }
+
+  const json = createTripDatasetExportJson(trip);
+  const blob = new browser.Blob([json], { type: "application/json" });
+  const url = browser.URL.createObjectURL(blob);
+  const link = browser.document.createElement("a");
+
+  link.href = url;
+  link.download = `${trip.tripId ?? "trip"}-dataset.json`;
+  link.hidden = true;
+  browser.document.body?.append(link);
+  link.click();
+  link.remove();
+  browser.setTimeout?.(() => browser.URL.revokeObjectURL(url), 0) ??
+    browser.URL.revokeObjectURL(url);
 }
 
 async function submitTripReview(form) {
