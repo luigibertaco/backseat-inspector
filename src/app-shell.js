@@ -1,3 +1,5 @@
+import { createComfortReport } from "./comfort-report.js";
+
 const SCREENS = [
   {
     id: "start",
@@ -89,6 +91,7 @@ export function renderAppShell(shell = createAppShell(), permissionDiagnostics =
       ${renderPermissionDiagnostics(shell, permissionDiagnostics)}
       ${renderTripRecovery(shell, tripRecording?.recovery)}
       ${renderTripRecordingStatus(shell, tripRecording?.activeTrip, tripRecording?.wakeLock)}
+      ${renderComfortReport(shell, tripRecording?.activeTrip)}
       ${renderScreenTabs(shell)}
       <button class="primary-action" type="button" data-action="primary">${shell.currentScreen.action}</button>
     </section>
@@ -213,6 +216,43 @@ function renderTripRecordingStatus(shell, activeTrip, wakeLock) {
   `;
 }
 
+function renderComfortReport(shell, trip) {
+  if (shell.currentScreen.id !== "comfort-report" || trip?.status !== "finished") {
+    return "";
+  }
+
+  const report = createComfortReport(trip);
+
+  return `
+    <dl class="diagnostics" aria-label="Comfort Report GPS summary">
+      <div class="diagnostic">
+        <dt>Duration</dt>
+        <dd>${formatDuration(report.durationSeconds)}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>Approximate Distance</dt>
+        <dd>${formatDistance(report.gps.approximateDistanceMeters)}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>Average Speed</dt>
+        <dd>${formatSpeed(report.gps.averageSpeedMetersPerSecond)}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>Maximum Speed</dt>
+        <dd>${formatSpeed(report.gps.maximumSpeedMetersPerSecond)}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>GPS Points</dt>
+        <dd>${report.gps.pointCount}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>Low-accuracy Samples</dt>
+        <dd>${report.gps.lowAccuracySamplePercentage}%</dd>
+      </div>
+    </dl>
+  `;
+}
+
 function formatRecoveryAction(action) {
   const labels = {
     continue: "Continue Trip",
@@ -239,4 +279,23 @@ function formatStatus(status) {
   const label = status.split("-").join(" ");
 
   return `${label[0].toUpperCase()}${label.slice(1)}`;
+}
+
+function formatDuration(durationSeconds) {
+  const minutes = Math.floor(durationSeconds / 60);
+  const seconds = durationSeconds % 60;
+
+  return `${minutes} min ${seconds} sec`;
+}
+
+function formatDistance(distanceMeters) {
+  if (distanceMeters >= 1000) {
+    return `${(distanceMeters / 1000).toFixed(1)} km`;
+  }
+
+  return `${Math.round(distanceMeters)} m`;
+}
+
+function formatSpeed(speedMetersPerSecond) {
+  return `${(speedMetersPerSecond * 3.6).toFixed(1)} km/h`;
 }

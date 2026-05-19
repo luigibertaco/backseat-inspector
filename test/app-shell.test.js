@@ -109,6 +109,60 @@ test("recording screen stays minimal with wake lock status and finish action", (
   assert.doesNotMatch(html, /data-screen="start"/);
 });
 
+test("Comfort Report screen shows GPS aggregates for a finished Trip without unsupported claims", () => {
+  const html = renderAppShell(createAppShell("comfort-report"), null, {
+    activeTrip: {
+      tripId: "trip-gps",
+      status: "finished",
+      timestamps: {
+        startedAt: "2026-05-19T10:00:00.000Z",
+        finishedAt: "2026-05-19T10:02:00.000Z",
+      },
+      streams: {
+        motion: [],
+        gps: [
+          {
+            timestamp: 0,
+            latitude: 0,
+            longitude: 0,
+            speedMetersPerSecond: 1.2,
+            accuracyMeters: 8,
+          },
+          {
+            timestamp: 60000,
+            latitude: 0,
+            longitude: 0.001,
+            speedMetersPerSecond: 2.4,
+            accuracyMeters: 42,
+          },
+          {
+            timestamp: 120000,
+            latitude: 0,
+            longitude: 0.002,
+            speedMetersPerSecond: 3.6,
+            accuracyMeters: 12,
+          },
+        ],
+      },
+    },
+  });
+
+  assert.match(html, /Comfort Report/);
+  assert.match(html, /Duration/);
+  assert.match(html, /2 min 0 sec/);
+  assert.match(html, /Approximate Distance/);
+  assert.match(html, /222 m/);
+  assert.match(html, /Average Speed/);
+  assert.match(html, /6\.7 km\/h/);
+  assert.match(html, /Maximum Speed/);
+  assert.match(html, /13\.0 km\/h/);
+  assert.match(html, /GPS Points/);
+  assert.match(html, /3/);
+  assert.match(html, /Low-accuracy Samples/);
+  assert.match(html, /33%/);
+  assert.doesNotMatch(html, /safety|danger|fuel economy|efficiency/i);
+});
+
 test("static entrypoint mounts the app shell with a browser module", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
