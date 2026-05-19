@@ -163,6 +163,27 @@ test("Comfort Report screen shows GPS aggregates for a finished Trip without uns
   assert.doesNotMatch(html, /safety|danger|fuel economy|efficiency/i);
 });
 
+test("recording screen uses Comfort Signal as ambient color without live scoring language", () => {
+  const html = renderAppShell(createAppShell("recording"), null, {
+    activeTrip: {
+      status: "recording",
+      streams: {
+        motion: [],
+        gps: [],
+      },
+    },
+    comfortSignal: {
+      tone: "strong",
+      className: "comfort-signal-strong",
+    },
+  });
+
+  assert.match(html, /app-panel[^"]*comfort-signal-strong/);
+  assert.doesNotMatch(html, /Comfort Index/);
+  assert.doesNotMatch(html, /safety/i);
+  assert.doesNotMatch(html, /warning/i);
+});
+
 test("static entrypoint mounts the app shell with a browser module", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 

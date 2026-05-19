@@ -78,7 +78,7 @@ function findMountingMode(mountingModeId) {
 
 export function renderAppShell(shell = createAppShell(), permissionDiagnostics = null, tripRecording = null) {
   return `
-    <section class="app-panel" aria-labelledby="screen-title">
+    <section class="${renderPanelClass(shell, tripRecording?.comfortSignal)}" aria-labelledby="screen-title">
       <header class="app-header">
         <div class="brand-mark" aria-hidden="true">BI</div>
         <div>
@@ -96,6 +96,16 @@ export function renderAppShell(shell = createAppShell(), permissionDiagnostics =
       <button class="primary-action" type="button" data-action="primary">${shell.currentScreen.action}</button>
     </section>
   `;
+}
+
+function renderPanelClass(shell, comfortSignal) {
+  const classes = ["app-panel"];
+
+  if (shell.currentScreen.id === "recording" && comfortSignal?.className) {
+    classes.push(comfortSignal.className);
+  }
+
+  return classes.join(" ");
 }
 
 function renderScreenTabs(shell) {
