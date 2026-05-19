@@ -263,6 +263,17 @@ function renderComfortReport(shell, trip) {
     ${renderComfortReportViews(report)}
     ${renderConfidenceMarkers(report.confidenceMarkers)}
     ${renderComfortEvents(report.comfortEvents)}
+    ${renderTripDatasetExport()}
+  `;
+}
+
+function renderTripDatasetExport() {
+  return `
+    <section class="trip-export" aria-label="Trip dataset export">
+      <h2>Export Trip JSON</h2>
+      <p>Exported files may contain sensitive full route data, including precise location history. Review carefully before sharing.</p>
+      <button class="secondary-action" type="button" data-action="export-json">Export Trip JSON</button>
+    </section>
   `;
 }
 

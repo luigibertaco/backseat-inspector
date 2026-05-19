@@ -189,21 +189,24 @@ h1 {
 .confidence-marker,
 .comfort-events,
 .comfort-event-list,
-.comfort-event {
+.comfort-event,
+.trip-export {
   display: grid;
   gap: 14px;
 }
 
 .report-view,
 .confidence-markers,
-.comfort-events {
+.comfort-events,
+.trip-export {
   padding-top: 6px;
   border-top: 1px solid #dce4dd;
 }
 
 .report-view h2,
 .confidence-markers h2,
-.comfort-events h2 {
+.comfort-events h2,
+.trip-export h2 {
   margin: 0;
   font-size: 1.25rem;
 }
@@ -217,7 +220,8 @@ h1 {
 
 .report-view p,
 .confidence-marker p,
-.comfort-event p {
+.comfort-event p,
+.trip-export p {
   margin: 0;
   color: #46524c;
   line-height: 1.45;
@@ -270,7 +274,8 @@ h1 {
 }
 
 .screen-tab,
-.primary-action {
+.primary-action,
+.secondary-action {
   min-height: 44px;
   border-radius: 8px;
   border: 1px solid #c9d4ca;
@@ -301,6 +306,18 @@ h1 {
 }
 
 .primary-action:disabled {
+  opacity: 0.68;
+}
+
+.secondary-action {
+  justify-self: start;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #214f4b;
+  font-weight: 750;
+}
+
+.secondary-action:disabled {
   opacity: 0.68;
 }
 

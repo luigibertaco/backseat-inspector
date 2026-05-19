@@ -307,6 +307,36 @@ test("Comfort Report screen separates Raw View, Trusted View, Passenger Comfort,
   assert.doesNotMatch(html, /safety|danger|fuel economy|efficiency/i);
 });
 
+test("Comfort Report screen offers JSON export with a sensitive route-data warning", () => {
+  const html = renderAppShell(createAppShell("comfort-report"), null, {
+    activeTrip: {
+      tripId: "trip-export",
+      status: "finished",
+      timestamps: {
+        startedAt: "2026-05-19T10:00:00.000Z",
+        finishedAt: "2026-05-19T10:02:00.000Z",
+      },
+      confidenceMarkers: [],
+      streams: {
+        motion: [],
+        gps: [
+          {
+            timestamp: 0,
+            latitude: -34.9285,
+            longitude: 138.6007,
+            accuracyMeters: 8,
+          },
+        ],
+      },
+    },
+  });
+
+  assert.match(html, /Export Trip JSON/);
+  assert.match(html, /data-action="export-json"/);
+  assert.match(html, /sensitive full route data/i);
+  assert.match(html, /precise location history/i);
+});
+
 test("recording screen uses Comfort Signal as ambient color without live scoring language", () => {
   const html = renderAppShell(createAppShell("recording"), null, {
     activeTrip: {
