@@ -4,7 +4,7 @@ const SCREENS = [
     title: "Start Trip",
     eyebrow: "Ready",
     body: "Prepare permissions, mounting mode, and calibration before recording a Trip.",
-    action: "Check Permissions",
+    action: "Set Up Trip",
   },
   {
     id: "recording",
@@ -48,7 +48,7 @@ function findScreen(screenId) {
   return SCREENS.find((screen) => screen.id === screenId);
 }
 
-export function renderAppShell(shell = createAppShell(), permissionDiagnostics = null) {
+export function renderAppShell(shell = createAppShell()) {
   const screenTabs = shell.screens
     .map((screen) => {
       const active = screen.id === shell.currentScreen.id ? "true" : "false";
@@ -67,55 +67,8 @@ export function renderAppShell(shell = createAppShell(), permissionDiagnostics =
         </div>
       </header>
       <p class="screen-copy">${shell.currentScreen.body}</p>
-      ${renderPermissionDiagnostics(shell, permissionDiagnostics)}
       <div class="screen-tabs" aria-label="Trip flow">${screenTabs}</div>
       <button class="primary-action" type="button" data-action="primary">${shell.currentScreen.action}</button>
     </section>
   `;
-}
-
-function renderPermissionDiagnostics(shell, diagnostics) {
-  if (shell.currentScreen.id !== "start" || !diagnostics) {
-    return "";
-  }
-
-  const items = [
-    ["Motion", formatPermission(diagnostics.motion)],
-    ["Orientation", formatPermission(diagnostics.orientation)],
-    ["Gyroscope", formatPermission(diagnostics.gyroscope)],
-    ["GPS", formatGps(diagnostics.gps)],
-  ];
-
-  return `
-    <dl class="diagnostics" aria-label="Permission diagnostics">
-      ${items
-        .map(
-          ([label, value]) => `
-            <div class="diagnostic">
-              <dt>${label}</dt>
-              <dd>${value}</dd>
-            </div>
-          `,
-        )
-        .join("")}
-    </dl>
-  `;
-}
-
-function formatPermission(diagnostic) {
-  return formatStatus(diagnostic?.permission ?? diagnostic?.availability ?? "unavailable");
-}
-
-function formatGps(gps) {
-  if (gps?.active && Number.isFinite(gps.accuracyMeters)) {
-    return `Active (${Math.round(gps.accuracyMeters)} m accuracy)`;
-  }
-
-  return formatStatus(gps?.permission ?? gps?.availability ?? "unavailable");
-}
-
-function formatStatus(status) {
-  const label = status.split("-").join(" ");
-
-  return `${label[0].toUpperCase()}${label.slice(1)}`;
 }

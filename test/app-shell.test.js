@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-import { createAppShell, renderAppShell } from "../src/app-shell.js";
+import { createAppShell } from "../src/app-shell.js";
 
 test("app shell starts in the Start state with paths for Trip and Comfort Report", () => {
   const shell = createAppShell();
@@ -23,29 +23,6 @@ test("app shell advances through the Trip flow", () => {
 
   shell.activatePrimaryAction();
   assert.equal(shell.currentScreen.id, "comfort-report");
-});
-
-test("start screen shows permission and GPS diagnostics", () => {
-  const html = renderAppShell(createAppShell(), {
-    motion: { availability: "available", permission: "not-requested" },
-    orientation: { availability: "available", permission: "granted" },
-    gyroscope: { availability: "unavailable", permission: "unavailable" },
-    gps: {
-      availability: "available",
-      permission: "granted",
-      active: true,
-      accuracyMeters: 8,
-    },
-  });
-
-  assert.match(html, /Motion/);
-  assert.match(html, /Not requested/);
-  assert.match(html, /Orientation/);
-  assert.match(html, /Granted/);
-  assert.match(html, /Gyroscope/);
-  assert.match(html, /Unavailable/);
-  assert.match(html, /GPS/);
-  assert.match(html, /Active \(8 m accuracy\)/);
 });
 
 test("static entrypoint mounts the app shell with a browser module", async () => {
