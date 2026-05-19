@@ -269,7 +269,7 @@ function renderComfortEvents(events) {
     return `
       <section class="comfort-events" aria-label="Comfort Events">
         <h2>Comfort Events</h2>
-        <p>No longitudinal or lateral Comfort Events detected.</p>
+        <p>No Comfort Events detected.</p>
       </section>
     `;
   }
@@ -284,6 +284,7 @@ function renderComfortEvents(events) {
               <article class="comfort-event">
                 <h3>${formatComfortEventType(event.type)}</h3>
                 <p>${event.explanation}</p>
+                ${renderDriverControl(event)}
                 <dl class="diagnostics" aria-label="${formatComfortEventType(event.type)} intensity">
                   ${renderComfortEventMetrics(event)}
                 </dl>
@@ -294,6 +295,14 @@ function renderComfortEvents(events) {
       </div>
     </section>
   `;
+}
+
+function renderDriverControl(event) {
+  if (!event?.driverControl?.interpretation) {
+    return "";
+  }
+
+  return `<p>${event.driverControl.interpretation}</p>`;
 }
 
 function renderComfortEventMetrics(event) {
@@ -316,6 +325,50 @@ function renderComfortEventMetrics(event) {
       <div class="diagnostic">
         <dt>Lateral change</dt>
         <dd>${formatAcceleration(metrics.lateralDeltaMetersPerSecondSquared)}</dd>
+      </div>
+    `;
+  }
+
+  if (event.type === "vertical-impact") {
+    return `
+      <div class="diagnostic">
+        <dt>Peak vertical intensity</dt>
+        <dd>${formatAcceleration(metrics.peakAbsMetersPerSecondSquared)}</dd>
+      </div>
+      ${sustainedJerkMetric}
+      <div class="diagnostic">
+        <dt>Speed at impact</dt>
+        <dd>${formatOptionalSpeed(metrics.speedAtPeakMetersPerSecond)}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>Event samples</dt>
+        <dd>${metrics.sampleCount}</dd>
+      </div>
+    `;
+  }
+
+  if (event.type === "rough-road-segment") {
+    return `
+      <div class="diagnostic">
+        <dt>Peak vertical intensity</dt>
+        <dd>${formatAcceleration(metrics.peakAbsMetersPerSecondSquared)}</dd>
+      </div>
+      ${sustainedJerkMetric}
+      <div class="diagnostic">
+        <dt>Start speed</dt>
+        <dd>${formatOptionalSpeed(metrics.speedAtStartMetersPerSecond)}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>End speed</dt>
+        <dd>${formatOptionalSpeed(metrics.speedAtEndMetersPerSecond)}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>Speed response</dt>
+        <dd>${formatStatus(metrics.speedResponse)}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>Event samples</dt>
+        <dd>${metrics.sampleCount}</dd>
       </div>
     `;
   }
@@ -386,6 +439,8 @@ function formatComfortEventType(type) {
     "strong-acceleration": "Strong acceleration",
     "uncomfortable-turn": "Uncomfortable turn",
     "abrupt-lateral-variation": "Abrupt lateral variation",
+    "vertical-impact": "Vertical impact",
+    "rough-road-segment": "Rough-road segment",
   };
 
   return labels[type] ?? formatStatus(type);
@@ -397,4 +452,12 @@ function formatAcceleration(value) {
 
 function formatJerk(value) {
   return `${Number(value).toFixed(1)} m/s^3`;
+}
+
+function formatOptionalSpeed(speedMetersPerSecond) {
+  if (!Number.isFinite(speedMetersPerSecond)) {
+    return "Unavailable";
+  }
+
+  return formatSpeed(speedMetersPerSecond);
 }

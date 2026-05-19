@@ -3,18 +3,26 @@ const STRONG_ACCELERATION_THRESHOLD = 2.7;
 const UNCOMFORTABLE_TURN_THRESHOLD = 2.2;
 const ABRUPT_LATERAL_DELTA_THRESHOLD = 2.4;
 const ABRUPT_LATERAL_JERK_THRESHOLD = 9;
+const VERTICAL_IMPACT_THRESHOLD = 3.5;
+const ROUGH_ROAD_VERTICAL_THRESHOLD = 1.5;
+const ROUGH_ROAD_MIN_SAMPLE_COUNT = 4;
+const ROUGH_ROAD_MIN_DURATION_MS = 750;
+const ROUGH_ROAD_SPEED_REDUCTION_THRESHOLD = 1;
 
 export function detectComfortEvents(trip) {
   const motionSamples = Array.isArray(trip?.streams?.motion) ? trip.streams.motion : [];
+  const gpsSamples = Array.isArray(trip?.streams?.gps) ? trip.streams.gps : [];
   const events = [];
   let brakingSegment = null;
   let accelerationSegment = null;
   let turnSegment = null;
+  let verticalSegment = null;
   let previousSample = null;
 
   for (const sample of motionSamples) {
     const longitudinal = sample?.acceleration?.y;
     const lateral = sample?.acceleration?.x;
+    const vertical = sample?.acceleration?.z;
 
     if (previousSample) {
       const abruptLateralEvent = detectAbruptLateralVariation(previousSample, sample);
@@ -45,6 +53,18 @@ export function detectComfortEvents(trip) {
       turnSegment = null;
     }
 
+    if (Number.isFinite(vertical) && Math.abs(vertical) >= ROUGH_ROAD_VERTICAL_THRESHOLD) {
+      verticalSegment = appendSample(verticalSegment, previousSample, sample, "z", vertical, strongestAbs);
+    } else if (verticalSegment) {
+      const verticalEvent = createVerticalEvent(verticalSegment, gpsSamples);
+
+      if (verticalEvent) {
+        events.push(verticalEvent);
+      }
+
+      verticalSegment = null;
+    }
+
     previousSample = sample;
   }
 
@@ -57,18 +77,28 @@ export function detectComfortEvents(trip) {
   if (turnSegment) {
     events.push(createUncomfortableTurnEvent(turnSegment));
   }
+  if (verticalSegment) {
+    const verticalEvent = createVerticalEvent(verticalSegment, gpsSamples);
+
+    if (verticalEvent) {
+      events.push(verticalEvent);
+    }
+  }
 
   return events;
 }
 
 function appendSample(segment, previousSample, sample, axis, value, comparePeak) {
   const jerk = calculateJerk(previousSample, sample, axis, value);
+  const peak = segment ? comparePeak(segment.peak, value) : value;
+  const peakUpdated = !segment || peak === value;
 
   return {
     startedAtMs: segment?.startedAtMs ?? sample.timestamp,
     endedAtMs: sample.timestamp,
     sampleCount: (segment?.sampleCount ?? 0) + 1,
-    peak: segment ? comparePeak(segment.peak, value) : value,
+    peak,
+    peakAtMs: peakUpdated ? sample.timestamp : segment.peakAtMs,
     peakJerk: updatePeakJerk(segment?.peakJerk, jerk),
   };
 }
@@ -119,6 +149,76 @@ function createUncomfortableTurnEvent(segment) {
       peakAbsMetersPerSecondSquared: roundMetric(Math.abs(segment.peak)),
       peakJerkMetersPerSecondCubed: roundMetric(segment.peakJerk ?? 0),
       peakAbsJerkMetersPerSecondCubed: roundMetric(Math.abs(segment.peakJerk ?? 0)),
+      sampleCount: segment.sampleCount,
+    },
+  };
+}
+
+function createVerticalEvent(segment, gpsSamples) {
+  if (isRoughRoadSegment(segment)) {
+    return createRoughRoadEvent(segment, gpsSamples);
+  }
+
+  if (Math.abs(segment.peak) >= VERTICAL_IMPACT_THRESHOLD) {
+    return createVerticalImpactEvent(segment, gpsSamples);
+  }
+
+  return null;
+}
+
+function isRoughRoadSegment(segment) {
+  return (
+    segment.sampleCount >= ROUGH_ROAD_MIN_SAMPLE_COUNT &&
+    segment.endedAtMs - segment.startedAtMs >= ROUGH_ROAD_MIN_DURATION_MS
+  );
+}
+
+function createVerticalImpactEvent(segment, gpsSamples) {
+  const speedAtPeak = findNearestSpeedMetersPerSecond(gpsSamples, segment.peakAtMs);
+
+  return {
+    type: "vertical-impact",
+    startedAtMs: segment.peakAtMs,
+    endedAtMs: segment.peakAtMs,
+    explanation: "An isolated vertical impact was detected from a short vertical acceleration spike.",
+    driverControl: {
+      interpretation: `A single vertical impact is a limited Driver Control signal; it was recorded ${formatSpeedContext(speedAtPeak)}.`,
+    },
+    metrics: {
+      axis: "vertical",
+      peakMetersPerSecondSquared: roundMetric(segment.peak),
+      peakAbsMetersPerSecondSquared: roundMetric(Math.abs(segment.peak)),
+      peakJerkMetersPerSecondCubed: roundMetric(segment.peakJerk ?? 0),
+      peakAbsJerkMetersPerSecondCubed: roundMetric(Math.abs(segment.peakJerk ?? 0)),
+      speedAtPeakMetersPerSecond: roundNullableMetric(speedAtPeak),
+      sampleCount: segment.sampleCount,
+    },
+  };
+}
+
+function createRoughRoadEvent(segment, gpsSamples) {
+  const speedAtStart = findNearestSpeedMetersPerSecond(gpsSamples, segment.startedAtMs);
+  const speedAtEnd = findNearestSpeedMetersPerSecond(gpsSamples, segment.endedAtMs);
+  const speedResponse = classifySpeedResponse(speedAtStart, speedAtEnd);
+
+  return {
+    type: "rough-road-segment",
+    startedAtMs: segment.startedAtMs,
+    endedAtMs: segment.endedAtMs,
+    explanation: "A sustained rough-road segment was detected from repeated vertical acceleration changes.",
+    driverControl: {
+      speedResponse,
+      interpretation: createRoughRoadDriverControlInterpretation(speedResponse),
+    },
+    metrics: {
+      axis: "vertical",
+      peakMetersPerSecondSquared: roundMetric(segment.peak),
+      peakAbsMetersPerSecondSquared: roundMetric(Math.abs(segment.peak)),
+      peakJerkMetersPerSecondCubed: roundMetric(segment.peakJerk ?? 0),
+      peakAbsJerkMetersPerSecondCubed: roundMetric(Math.abs(segment.peakJerk ?? 0)),
+      speedAtStartMetersPerSecond: roundNullableMetric(speedAtStart),
+      speedAtEndMetersPerSecond: roundNullableMetric(speedAtEnd),
+      speedResponse,
       sampleCount: segment.sampleCount,
     },
   };
@@ -180,6 +280,65 @@ function strongestAbs(first, second) {
   return Math.abs(second) > Math.abs(first) ? second : first;
 }
 
+function findNearestSpeedMetersPerSecond(samples, timestamp) {
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+
+  let nearestSample = null;
+  let nearestDistance = Infinity;
+
+  for (const sample of samples) {
+    if (!Number.isFinite(sample?.timestamp) || !Number.isFinite(sample?.speedMetersPerSecond)) {
+      continue;
+    }
+
+    const distance = Math.abs(sample.timestamp - timestamp);
+
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestSample = sample;
+    }
+  }
+
+  return nearestSample?.speedMetersPerSecond ?? null;
+}
+
+function classifySpeedResponse(speedAtStart, speedAtEnd) {
+  if (!Number.isFinite(speedAtStart) || !Number.isFinite(speedAtEnd)) {
+    return "unknown";
+  }
+
+  return speedAtEnd <= speedAtStart - ROUGH_ROAD_SPEED_REDUCTION_THRESHOLD
+    ? "reduced"
+    : "maintained";
+}
+
+function createRoughRoadDriverControlInterpretation(speedResponse) {
+  const interpretations = {
+    reduced:
+      "Driver Control: speed was reduced during the rough-road segment, suggesting a responsive speed choice.",
+    maintained:
+      "Driver Control: speed was maintained during the rough-road segment, so Passenger Comfort was affected while speed stayed steady.",
+    unknown:
+      "Driver Control: speed response could not be estimated because GPS speed context was unavailable.",
+  };
+
+  return interpretations[speedResponse] ?? interpretations.unknown;
+}
+
+function formatSpeedContext(speedMetersPerSecond) {
+  if (!Number.isFinite(speedMetersPerSecond)) {
+    return "without GPS speed context";
+  }
+
+  return `at about ${Math.round(speedMetersPerSecond * 3.6)} km/h`;
+}
+
 function roundMetric(value) {
   return Math.round(value * 10) / 10;
+}
+
+function roundNullableMetric(value) {
+  return Number.isFinite(value) ? roundMetric(value) : null;
 }
