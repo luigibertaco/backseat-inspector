@@ -244,6 +244,69 @@ test("Comfort Report screen renders vertical Driver Control and speed response d
   assert.doesNotMatch(html, /safety|danger|fuel economy|efficiency/i);
 });
 
+test("Comfort Report screen separates Raw View, Trusted View, Passenger Comfort, and Driver Control", () => {
+  const html = renderAppShell(createAppShell("comfort-report"), null, {
+    activeTrip: {
+      tripId: "trip-index",
+      status: "finished",
+      timestamps: {
+        startedAt: "2026-05-19T10:00:00.000Z",
+        finishedAt: "2026-05-19T10:00:04.000Z",
+      },
+      confidenceMarkers: [
+        {
+          type: "moved-phone",
+          severity: "high",
+          reason: "Stopped-phone calibration detected a placement change while parked.",
+        },
+      ],
+      streams: {
+        motion: [
+          { timestamp: 0, acceleration: { x: 0, y: 0, z: 0.1 } },
+          { timestamp: 250, acceleration: { x: 0, y: -3.2, z: 0.1 } },
+          { timestamp: 500, acceleration: { x: 0, y: -0.2, z: 0.1 } },
+          { timestamp: 1250, acceleration: { x: 0, y: 0, z: 1.8 } },
+          { timestamp: 1500, acceleration: { x: 0, y: 0, z: -1.9 } },
+          { timestamp: 1750, acceleration: { x: 0, y: 0, z: 2.1 } },
+          { timestamp: 2000, acceleration: { x: 0, y: 0, z: -1.7 } },
+          { timestamp: 2250, acceleration: { x: 0, y: 0, z: 1.6 } },
+          { timestamp: 2500, acceleration: { x: 0, y: 0, z: 0.2 } },
+        ],
+        gps: [
+          {
+            timestamp: 1250,
+            latitude: 0,
+            longitude: 0,
+            speedMetersPerSecond: 11.9,
+            accuracyMeters: 8,
+          },
+          {
+            timestamp: 2250,
+            latitude: 0,
+            longitude: 0.001,
+            speedMetersPerSecond: 9.7,
+            accuracyMeters: 8,
+          },
+        ],
+      },
+    },
+  });
+
+  assert.match(html, /Raw View/);
+  assert.match(html, /Trusted View/);
+  assert.match(html, /Experimental Comfort Index/);
+  assert.match(html, /64/);
+  assert.match(html, /Mixed comfort/);
+  assert.match(html, /84/);
+  assert.match(html, /Mostly comfortable/);
+  assert.match(html, /Passenger Comfort/);
+  assert.match(html, /Driver Control/);
+  assert.match(html, /Confidence Markers/);
+  assert.match(html, /Moved phone/);
+  assert.match(html, /speed was reduced/i);
+  assert.doesNotMatch(html, /safety|danger|fuel economy|efficiency/i);
+});
+
 test("recording screen uses Comfort Signal as ambient color without live scoring language", () => {
   const html = renderAppShell(createAppShell("recording"), null, {
     activeTrip: {
