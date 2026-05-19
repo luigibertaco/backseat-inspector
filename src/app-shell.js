@@ -1,4 +1,9 @@
 import { createComfortReport } from "./comfort-report.js";
+import {
+  EVENT_LABELS,
+  PERCEIVED_ACCURACY_OPTIONS,
+  PERCEIVED_COMFORT_OPTIONS,
+} from "./trip-review.js";
 
 const SCREENS = [
   {
@@ -263,6 +268,7 @@ function renderComfortReport(shell, trip) {
     ${renderComfortReportViews(report)}
     ${renderConfidenceMarkers(report.confidenceMarkers)}
     ${renderComfortEvents(report.comfortEvents)}
+    ${renderTripReview(report, trip.tripReview)}
   `;
 }
 
@@ -410,6 +416,160 @@ function renderComfortEvents(events) {
   `;
 }
 
+function renderTripReview(report, tripReview) {
+  return `
+    <section class="trip-review" aria-label="Trip Review">
+      <h2>Trip Review</h2>
+      ${tripReview ? renderSavedTripReview(tripReview) : ""}
+      <form data-trip-review="form">
+        <div class="trip-review-section">
+          <h3>Event Labels</h3>
+          ${renderEventLabelControls(report.comfortEvents, tripReview)}
+        </div>
+        <div class="trip-review-section">
+          <h3>Whole Trip</h3>
+          <div class="trip-review-fields">
+            ${renderSelectField({
+              label: "Perceived comfort",
+              name: "perceivedComfort",
+              options: PERCEIVED_COMFORT_OPTIONS,
+              value: tripReview?.overall?.perceivedComfort,
+            })}
+            ${renderSelectField({
+              label: "Perceived app accuracy",
+              name: "perceivedAccuracy",
+              options: PERCEIVED_ACCURACY_OPTIONS,
+              value: tripReview?.overall?.perceivedAccuracy,
+            })}
+            ${renderTextareaField({
+              label: "Missed Comfort Events",
+              name: "missedComfortEvents",
+              value: tripReview?.overall?.missedComfortEvents,
+            })}
+            ${renderTextareaField({
+              label: "Review notes",
+              name: "notes",
+              value: tripReview?.overall?.notes,
+            })}
+          </div>
+        </div>
+        <button class="secondary-action" type="submit" data-trip-review-action="save">Save Trip Review</button>
+      </form>
+    </section>
+  `;
+}
+
+function renderEventLabelControls(events, tripReview) {
+  if (!Array.isArray(events) || events.length === 0) {
+    return "<p>No Comfort Events available for Event Labels.</p>";
+  }
+
+  return events
+    .map((event) => {
+      const savedLabel = findSavedEventLabel(tripReview, event.eventId);
+
+      return `
+        <fieldset class="event-label-control">
+          <legend>${formatComfortEventType(event.type)}</legend>
+          ${renderSelectField({
+            label: "Event Label",
+            name: `eventLabel:${event.eventId}`,
+            options: EVENT_LABELS,
+            value: savedLabel?.label,
+          })}
+          ${renderTextareaField({
+            label: "Event note",
+            name: `eventNote:${event.eventId}`,
+            value: savedLabel?.note,
+          })}
+        </fieldset>
+      `;
+    })
+    .join("");
+}
+
+function renderSavedTripReview(tripReview) {
+  return `
+    <article class="saved-trip-review">
+      <h3>Saved Trip Review</h3>
+      <dl class="diagnostics" aria-label="Saved Trip Review summary">
+        <div class="diagnostic">
+          <dt>Perceived comfort</dt>
+          <dd>${formatStatus(tripReview.overall?.perceivedComfort ?? "")}</dd>
+        </div>
+        <div class="diagnostic">
+          <dt>Perceived app accuracy</dt>
+          <dd>${formatStatus(tripReview.overall?.perceivedAccuracy ?? "")}</dd>
+        </div>
+      </dl>
+      ${renderSavedEventLabels(tripReview.eventLabels)}
+      ${renderSavedReviewText("Missed Comfort Events", tripReview.overall?.missedComfortEvents)}
+      ${renderSavedReviewText("Review notes", tripReview.overall?.notes)}
+    </article>
+  `;
+}
+
+function renderSavedEventLabels(eventLabels) {
+  if (!Array.isArray(eventLabels) || eventLabels.length === 0) {
+    return "";
+  }
+
+  return `
+    <ul class="event-label-list">
+      ${eventLabels
+        .filter((eventLabel) => eventLabel.label || eventLabel.note)
+        .map(
+          (eventLabel) => `
+            <li>
+              <strong>${formatComfortEventType(eventLabel.eventType)}</strong>:
+              ${formatStatus(eventLabel.label)}
+              ${eventLabel.note ? `<span>${eventLabel.note}</span>` : ""}
+            </li>
+          `,
+        )
+        .join("")}
+    </ul>
+  `;
+}
+
+function renderSavedReviewText(label, value) {
+  if (!value) {
+    return "";
+  }
+
+  return `<p><strong>${label}:</strong> ${value}</p>`;
+}
+
+function renderSelectField({ label, name, options, value }) {
+  return `
+    <label class="form-field">
+      <span>${label}</span>
+      <select name="${name}">
+        <option value="">Choose</option>
+        ${options
+          .map(
+            (option) =>
+              `<option value="${option.value}"${option.value === value ? " selected" : ""}>${option.label}</option>`,
+          )
+          .join("")}
+      </select>
+    </label>
+  `;
+}
+
+function renderTextareaField({ label, name, value = "" }) {
+  return `
+    <label class="form-field">
+      <span>${label}</span>
+      <textarea name="${name}" rows="2">${value ?? ""}</textarea>
+    </label>
+  `;
+}
+
+function findSavedEventLabel(tripReview, eventId) {
+  return tripReview?.eventLabels?.find((eventLabel) => eventLabel.eventId === eventId);
+}
+
 function renderDriverControl(event) {
   if (!event?.driverControl?.interpretation) {
     return "";
@@ -522,6 +682,10 @@ function formatGps(gps) {
 }
 
 function formatStatus(status) {
+  if (!status) {
+    return "Not set";
+  }
+
   const label = status.split("-").join(" ");
 
   return `${label[0].toUpperCase()}${label.slice(1)}`;

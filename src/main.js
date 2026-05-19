@@ -1,4 +1,5 @@
 import { createAppShell, renderAppShell } from "./app-shell.js";
+import { createComfortReport } from "./comfort-report.js";
 import { createComfortSignal } from "./comfort-signal.js";
 import { createBrowserPermissionFlow } from "./permissions.js";
 import {
@@ -6,7 +7,9 @@ import {
   createTripRecorder,
   getOrCreateLocalDeviceId,
   recoverInterruptedTrip,
+  saveTripReview,
 } from "./trip-recorder.js";
+import { createTripReviewFromFormData } from "./trip-review.js";
 import { createBrowserWakeLockController } from "./wake-lock.js";
 
 const app = document.querySelector("#app");
@@ -70,6 +73,17 @@ if (app) {
       shell.activatePrimaryAction();
       render();
     }
+  });
+
+  app.addEventListener("submit", async (event) => {
+    const form = event.target.closest("[data-trip-review='form']");
+
+    if (!form) {
+      return;
+    }
+
+    event.preventDefault();
+    await submitTripReview(form);
   });
 }
 
@@ -158,6 +172,30 @@ async function applyTripRecovery(action) {
     wakeLock = null;
     tripRecovery = await recoverInterruptedTrip({ store: tripStore });
   }
+}
+
+async function submitTripReview(form) {
+  if (!activeTrip || activeTrip.status !== "finished") {
+    return;
+  }
+
+  const control = form.querySelector("[data-trip-review-action='save']");
+
+  control.disabled = true;
+
+  const report = createComfortReport(activeTrip);
+  const review = createTripReviewFromFormData({
+    report,
+    formData: new FormData(form),
+  });
+
+  activeTrip = await saveTripReview({
+    store: tripStore,
+    tripId: activeTrip.tripId,
+    review,
+  });
+
+  render();
 }
 
 function updateActiveTrip() {

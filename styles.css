@@ -189,35 +189,44 @@ h1 {
 .confidence-marker,
 .comfort-events,
 .comfort-event-list,
-.comfort-event {
+.comfort-event,
+.trip-review,
+.trip-review form,
+.trip-review-section,
+.trip-review-fields,
+.saved-trip-review {
   display: grid;
   gap: 14px;
 }
 
 .report-view,
 .confidence-markers,
-.comfort-events {
+.comfort-events,
+.trip-review {
   padding-top: 6px;
   border-top: 1px solid #dce4dd;
 }
 
 .report-view h2,
 .confidence-markers h2,
-.comfort-events h2 {
+.comfort-events h2,
+.trip-review h2 {
   margin: 0;
   font-size: 1.25rem;
 }
 
 .report-view h3,
 .confidence-marker h3,
-.comfort-event h3 {
+.comfort-event h3,
+.trip-review h3 {
   margin: 0;
   font-size: 1rem;
 }
 
 .report-view p,
 .confidence-marker p,
-.comfort-event p {
+.comfort-event p,
+.trip-review p {
   margin: 0;
   color: #46524c;
   line-height: 1.45;
@@ -228,6 +237,57 @@ h1 {
   padding-left: 20px;
   color: #46524c;
   line-height: 1.45;
+}
+
+.event-label-control {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #d4ddd5;
+  border-radius: 8px;
+  background: #fbfcfa;
+}
+
+.event-label-control legend {
+  padding: 0 4px;
+  font-weight: 800;
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+  color: #46524c;
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 10px;
+  border: 1px solid #c9d4ca;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17201b;
+  font: inherit;
+  font-weight: 500;
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+.event-label-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #46524c;
+  line-height: 1.45;
+}
+
+.event-label-list span {
+  display: block;
 }
 
 .trip-recovery {
@@ -291,7 +351,8 @@ h1 {
   font-weight: 700;
 }
 
-.primary-action {
+.primary-action,
+.secondary-action {
   justify-self: start;
   padding: 0 18px;
   border-color: #214f4b;
@@ -300,7 +361,14 @@ h1 {
   font-weight: 750;
 }
 
-.primary-action:disabled {
+.secondary-action {
+  min-height: 42px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.primary-action:disabled,
+.secondary-action:disabled {
   opacity: 0.68;
 }
 
