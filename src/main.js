@@ -6,6 +6,7 @@ import {
   getOrCreateLocalDeviceId,
   recoverInterruptedTrip,
 } from "./trip-recorder.js";
+import { createBrowserWakeLockController } from "./wake-lock.js";
 
 const app = document.querySelector("#app");
 const shell = createAppShell();
@@ -16,6 +17,7 @@ let recorder = null;
 let activeTrip = null;
 let tripRecovery = await recoverInterruptedTrip({ store: tripStore });
 let capture = null;
+let wakeLock = null;
 
 if (app) {
   render();
@@ -73,6 +75,7 @@ function render() {
     app.innerHTML = renderAppShell(shell, permissionFlow.snapshot(), {
       recovery: tripRecovery,
       activeTrip,
+      wakeLock: wakeLock?.snapshot(),
     });
     app.querySelector("[aria-pressed='true']")?.focus();
   }
@@ -89,12 +92,17 @@ async function startTrip() {
   tripRecovery = await recoverInterruptedTrip({ store: tripStore });
   capture = createBrowserTripCapture(globalThis, recorder, updateActiveTrip);
   capture.start();
+  wakeLock = createBrowserWakeLockController(globalThis, { onChange: render });
+  wakeLock.bindVisibilityRecovery();
+  await wakeLock.request();
   shell.goToScreen("recording");
 }
 
 async function finishTrip() {
   capture?.stop();
   capture = null;
+  await wakeLock?.release();
+  wakeLock = null;
 
   if (recorder) {
     activeTrip = await recorder.finishTrip();
@@ -115,6 +123,9 @@ async function applyTripRecovery(action) {
     activeTrip = recorder.snapshot();
     capture = createBrowserTripCapture(globalThis, recorder, updateActiveTrip);
     capture.start();
+    wakeLock = createBrowserWakeLockController(globalThis, { onChange: render });
+    wakeLock.bindVisibilityRecovery();
+    await wakeLock.request();
     shell.goToScreen("recording");
     return;
   }
@@ -130,6 +141,7 @@ async function applyTripRecovery(action) {
     await tripRecovery.discardTrip();
     activeTrip = null;
     recorder = null;
+    wakeLock = null;
     tripRecovery = await recoverInterruptedTrip({ store: tripStore });
   }
 }

@@ -85,6 +85,30 @@ test("start screen offers interrupted Trip recovery actions", () => {
   assert.match(html, /data-trip-recovery="continue"/);
 });
 
+test("recording screen stays minimal with wake lock status and finish action", () => {
+  const html = renderAppShell(createAppShell("recording"), null, {
+    activeTrip: {
+      status: "recording",
+      streams: {
+        motion: [{ timestamp: 0 }],
+        gps: [{ timestamp: 1000 }, { timestamp: 2000 }],
+      },
+    },
+    wakeLock: {
+      state: "active",
+      label: "Active",
+    },
+  });
+
+  assert.match(html, /Trip recording status/);
+  assert.match(html, /Motion Samples/);
+  assert.match(html, /GPS Samples/);
+  assert.match(html, /Wake Lock/);
+  assert.match(html, /Active/);
+  assert.match(html, /Finish Trip/);
+  assert.doesNotMatch(html, /data-screen="start"/);
+});
+
 test("static entrypoint mounts the app shell with a browser module", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 

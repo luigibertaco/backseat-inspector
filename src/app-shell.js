@@ -75,14 +75,6 @@ function findMountingMode(mountingModeId) {
 }
 
 export function renderAppShell(shell = createAppShell(), permissionDiagnostics = null, tripRecording = null) {
-  const screenTabs = shell.screens
-    .map((screen) => {
-      const active = screen.id === shell.currentScreen.id ? "true" : "false";
-
-      return `<button class="screen-tab" type="button" data-screen="${screen.id}" aria-pressed="${active}">${screen.title}</button>`;
-    })
-    .join("");
-
   return `
     <section class="app-panel" aria-labelledby="screen-title">
       <header class="app-header">
@@ -96,11 +88,27 @@ export function renderAppShell(shell = createAppShell(), permissionDiagnostics =
       ${renderMountingModes(shell)}
       ${renderPermissionDiagnostics(shell, permissionDiagnostics)}
       ${renderTripRecovery(shell, tripRecording?.recovery)}
-      ${renderTripRecordingStatus(shell, tripRecording?.activeTrip)}
-      <div class="screen-tabs" aria-label="Trip flow">${screenTabs}</div>
+      ${renderTripRecordingStatus(shell, tripRecording?.activeTrip, tripRecording?.wakeLock)}
+      ${renderScreenTabs(shell)}
       <button class="primary-action" type="button" data-action="primary">${shell.currentScreen.action}</button>
     </section>
   `;
+}
+
+function renderScreenTabs(shell) {
+  if (shell.currentScreen.id === "recording") {
+    return "";
+  }
+
+  const screenTabs = shell.screens
+    .map((screen) => {
+      const active = screen.id === shell.currentScreen.id ? "true" : "false";
+
+      return `<button class="screen-tab" type="button" data-screen="${screen.id}" aria-pressed="${active}">${screen.title}</button>`;
+    })
+    .join("");
+
+  return `<div class="screen-tabs" aria-label="Trip flow">${screenTabs}</div>`;
 }
 
 function renderMountingModes(shell) {
@@ -176,10 +184,12 @@ function renderTripRecovery(shell, recovery) {
   `;
 }
 
-function renderTripRecordingStatus(shell, activeTrip) {
+function renderTripRecordingStatus(shell, activeTrip, wakeLock) {
   if (shell.currentScreen.id !== "recording" || !activeTrip) {
     return "";
   }
+
+  const wakeLockStatus = wakeLock?.label ?? "Unavailable";
 
   return `
     <dl class="diagnostics" aria-label="Trip recording status">
@@ -194,6 +204,10 @@ function renderTripRecordingStatus(shell, activeTrip) {
       <div class="diagnostic">
         <dt>GPS Samples</dt>
         <dd>${activeTrip.streams.gps.length}</dd>
+      </div>
+      <div class="diagnostic">
+        <dt>Wake Lock</dt>
+        <dd>${wakeLockStatus}</dd>
       </div>
     </dl>
   `;
