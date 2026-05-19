@@ -1,3 +1,5 @@
+import { detectComfortEvents } from "./comfort-events.js";
+
 const LOW_ACCURACY_THRESHOLD_METERS = 30;
 const EARTH_RADIUS_METERS = 6371000;
 
@@ -5,10 +7,12 @@ export function createComfortReport(trip) {
   const durationSeconds = calculateDurationSeconds(trip?.timestamps);
   const gpsSamples = Array.isArray(trip?.streams?.gps) ? trip.streams.gps : [];
   const approximateDistanceMeters = calculateApproximateDistanceMeters(gpsSamples);
+  const comfortEvents = detectComfortEvents(trip);
 
   return {
     tripId: trip?.tripId ?? null,
     durationSeconds,
+    comfortEvents,
     gps: {
       pointCount: gpsSamples.length,
       approximateDistanceMeters,

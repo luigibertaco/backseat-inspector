@@ -49,3 +49,28 @@ test("Comfort Report calculates GPS aggregates from a finished Trip", () => {
   assert.ok(report.gps.averageSpeedMetersPerSecond > 1.85);
   assert.ok(report.gps.averageSpeedMetersPerSecond < 1.86);
 });
+
+test("Comfort Report includes detected Comfort Events with explanations and intensity metrics", () => {
+  const report = createComfortReport({
+    tripId: "trip-events",
+    status: "finished",
+    timestamps: {
+      startedAt: "2026-05-19T10:00:00.000Z",
+      finishedAt: "2026-05-19T10:00:02.000Z",
+    },
+    streams: {
+      motion: [
+        { timestamp: 0, acceleration: { x: 0, y: 0, z: 0 } },
+        { timestamp: 500, acceleration: { x: 0, y: -3.2, z: 0 } },
+        { timestamp: 1000, acceleration: { x: 0, y: -0.2, z: 0 } },
+      ],
+      gps: [],
+    },
+  });
+
+  assert.equal(report.comfortEvents.length, 1);
+  assert.equal(report.comfortEvents[0].type, "hard-braking");
+  assert.match(report.comfortEvents[0].explanation, /braking/i);
+  assert.equal(report.comfortEvents[0].metrics.axis, "longitudinal");
+  assert.equal(report.comfortEvents[0].metrics.peakAbsMetersPerSecondSquared, 3.2);
+});

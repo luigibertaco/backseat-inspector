@@ -163,6 +163,37 @@ test("Comfort Report screen shows GPS aggregates for a finished Trip without uns
   assert.doesNotMatch(html, /safety|danger|fuel economy|efficiency/i);
 });
 
+test("Comfort Report screen renders detected Comfort Events with intensity details", () => {
+  const html = renderAppShell(createAppShell("comfort-report"), null, {
+    activeTrip: {
+      tripId: "trip-events",
+      status: "finished",
+      timestamps: {
+        startedAt: "2026-05-19T10:00:00.000Z",
+        finishedAt: "2026-05-19T10:00:02.000Z",
+      },
+      streams: {
+        motion: [
+          { timestamp: 0, acceleration: { x: 0, y: 0, z: 0 } },
+          { timestamp: 500, acceleration: { x: 2.5, y: 0, z: 0 } },
+          { timestamp: 750, acceleration: { x: 2.8, y: 0, z: 0 } },
+          { timestamp: 1000, acceleration: { x: 0.1, y: 0, z: 0 } },
+        ],
+        gps: [],
+      },
+    },
+  });
+
+  assert.match(html, /Comfort Events/);
+  assert.match(html, /Uncomfortable turn/);
+  assert.match(html, /sustained lateral acceleration/i);
+  assert.match(html, /Peak lateral intensity/);
+  assert.match(html, /2\.8 m\/s\^2/);
+  assert.match(html, /Peak lateral jerk/);
+  assert.match(html, /5\.0 m\/s\^3/);
+  assert.doesNotMatch(html, /safety|danger|fuel economy|efficiency/i);
+});
+
 test("recording screen uses Comfort Signal as ambient color without live scoring language", () => {
   const html = renderAppShell(createAppShell("recording"), null, {
     activeTrip: {
